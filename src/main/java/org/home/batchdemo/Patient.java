@@ -2,9 +2,14 @@ package org.home.batchdemo;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Entity;
 
 @Getter
 @AllArgsConstructor
-public class Patient {
-    private final String firstName;
+@NoArgsConstructor
+@Entity
+public class Patient extends BaseEntity {
+    private String name;
 }

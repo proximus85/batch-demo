@@ -15,9 +15,11 @@ import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.FileSystemResource;
 
 import javax.persistence.EntityManagerFactory;
+import javax.transaction.Transactional;
 import java.nio.file.Paths;
 import java.util.function.Function;
 
@@ -52,11 +54,6 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public Function<PatientRecord, Patient> patientProcessor() {
-        return (patientRecord) -> new Patient(patientRecord.getFirstName());
-    }
-
-    @Bean
     public FlatFileItemReader<PatientRecord> patientReader() {
         return new FlatFileItemReaderBuilder<PatientRecord>()
                 .name("patient flat file item reader")
@@ -67,13 +64,11 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public LineMapper<PatientRecord> getLineMapper() {
-        DefaultLineMapper<PatientRecord> lineMapper = new DefaultLineMapper<>();
-        lineMapper.setFieldSetMapper(fieldSet -> new PatientRecord(
-                fieldSet.readString(0)
-        ));
-        lineMapper.setLineTokenizer(new DelimitedLineTokenizer());
-        return lineMapper;
+    public Function<PatientRecord, Patient> patientProcessor() {
+        return (patientRecord) -> {
+            System.out.println(patientRecord);
+            return new Patient(patientRecord.getFirstName());
+        };
     }
 
     @Bean
@@ -81,5 +76,13 @@ public class BatchConfiguration {
         return new JpaItemWriterBuilder<Patient>()
                 .entityManagerFactory(entityManagerFactory)
                 .build();
+    }
+
+    @Bean
+    public LineMapper<PatientRecord> getLineMapper() {
+        DefaultLineMapper<PatientRecord> lineMapper = new DefaultLineMapper<>();
+        lineMapper.setFieldSetMapper(fieldSet -> new PatientRecord(fieldSet.readString(0)));
+        lineMapper.setLineTokenizer(new DelimitedLineTokenizer());
+        return lineMapper;
     }
 }

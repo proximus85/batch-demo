@@ -1,6 +1,7 @@
 package org.home.batchdemo;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @AllArgsConstructor
 @RequestMapping(path = "/patient")
+@Slf4j
 public class PatientController {
 
     private final JobLauncher jobLauncher;
@@ -27,8 +29,7 @@ public class PatientController {
         try {
             jobLauncher.run(this.job, new JobParameters(parameterMap));
         } catch (Exception e) {
-            System.out.println("oops :)");
+            log.info(e.getMessage());
         }
     }
-
 }
