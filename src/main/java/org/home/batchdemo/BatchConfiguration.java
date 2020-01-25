@@ -5,7 +5,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
@@ -15,13 +17,10 @@ import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.FileSystemResource;
 
 import javax.persistence.EntityManagerFactory;
-import javax.transaction.Transactional;
 import java.nio.file.Paths;
-import java.util.function.Function;
 
 @Configuration
 @EnableBatchProcessing
@@ -37,19 +36,21 @@ public class BatchConfiguration {
     private EntityManagerFactory entityManagerFactory;
 
     @Bean
-    public Job getJob() {
+    public Job getJob(Step step) {
         return jobBuilderFactory.get("someJob")
-                .start(getSomeStep())
+                .start(step)
                 .build();
     }
 
     @Bean
-    public Step getSomeStep() {
+    public Step getSomeStep(ItemReader<PatientRecord> itemReader,
+                            ItemProcessor<PatientRecord, Patient> patientProcessor,
+                            ItemWriter<Patient> itemWriter) {
         return this.stepBuilderFactory.get("someStep")
-                .<PatientRecord, Patient>chunk(2)
-                .reader(patientReader())
-                .processor(patientProcessor())
-                .writer(patientJpaItemWriter())
+                .<PatientRecord, Patient>chunk(1)
+                .reader(itemReader)
+                .processor(patientProcessor)
+                .writer(itemWriter)
                 .build();
     }
 
@@ -64,15 +65,12 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public Function<PatientRecord, Patient> patientProcessor() {
-        return (patientRecord) -> {
-            System.out.println(patientRecord);
-            return new Patient(patientRecord.getFirstName());
-        };
+    public ItemProcessor<PatientRecord, Patient> patientProcessor() {
+        return (patientRecord) -> new Patient(patientRecord.getFirstName());
     }
 
     @Bean
-    public JpaItemWriter<Patient> patientJpaItemWriter() {
+    public ItemWriter<Patient> patientJpaItemWriter() {
         return new JpaItemWriterBuilder<Patient>()
                 .entityManagerFactory(entityManagerFactory)
                 .build();
